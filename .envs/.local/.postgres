@@ -1,0 +1,7 @@
+# PostgreSQL
+# ------------------------------------------------------------------------------
+POSTGRES_HOST=postgres
+POSTGRES_PORT=5432
+POSTGRES_DB=rahnuma
+POSTGRES_USER=pFUxsTCteENGupfVlxuRZtwVAEXeKUWy
+POSTGRES_PASSWORD=Ce78yfFuwRKk5f49RszgLNv2R4MgKcHmP1CWXKH3g0Ppmo2wXExRkXTchBDPBONE
