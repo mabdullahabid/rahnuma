@@ -340,3 +340,5 @@ SPECTACULAR_SETTINGS = {
 }
 # Your stuff...
 # ------------------------------------------------------------------------------
+OPENAI_API_KEY = env.str("OPENAI_API_KEY", default="")
+GITHUB_TOKEN = env.str("GITHUB_TOKEN", default="")
