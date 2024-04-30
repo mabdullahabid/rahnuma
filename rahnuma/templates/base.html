@@ -24,7 +24,6 @@
             crossorigin="anonymous"
             referrerpolicy="no-referrer" />
       <!-- Your stuff: Third-party CSS libraries go here -->
-      <script src="{% static 'js/htmx.min.js' %}" defer></script>
       <!-- This file stores project-specific CSS -->
       <link href="{% static 'css/project.css' %}" rel="stylesheet" />
     {% endblock css %}
@@ -39,6 +38,7 @@
               crossorigin="anonymous"
               referrerpolicy="no-referrer"></script>
       <!-- Your stuff: Third-party javascript libraries go here -->
+      <script src="{% static 'js/htmx.min.js' %}" defer></script>
       <!-- place project specific Javascript in this file -->
       <script defer src="{% static 'js/project.js' %}"></script>
     {% endblock javascript %}
