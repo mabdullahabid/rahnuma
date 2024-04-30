@@ -1,5 +1,16 @@
 {% extends "base.html" %}
 
 {% block content %}
-  <h1>List of PRs</h1>
+  <form>
+    <input type="text" name="repo_name" placeholder="repo name" required />
+    <input type="number" name="pr_number" placeholder="pr number" required />
+    <button hx-post="{% url 'core:pull_request' %}"
+            hx-target="#pr-details"
+            hx-swap="innerHTML">Get PR details</button>
+    <button hx-post="{% url 'core:summarize' %}"
+            hx-target="#summary"
+            hx-swap="innerHTML">Summarize</button>
+    <div id="pr-details"></div>
+    <div id="summary"></div>
+  </form>
 {% endblock content %}
