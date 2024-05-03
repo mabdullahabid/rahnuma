@@ -1,8 +1,36 @@
-from unittest.mock import Mock, patch
+# tests.py
+from unittest.mock import MagicMock, Mock, patch
 
-from django.test import TestCase
+from django.test import Client, TestCase
+from django.urls import reverse
 
 from rahnuma.core.services.code_review import code_review
+
+
+class RahnumaViewTestCase(TestCase):
+    def setUp(self):
+        self.client = Client()
+
+    @patch("rahnuma.core.views.get_repo_and_pr")
+    def test_pull_request_view(self, MockGetRepoAndPr):
+        mock_repo = MagicMock()
+        mock_pr = MagicMock()
+        MockGetRepoAndPr.return_value = (mock_repo, mock_pr)
+
+        response = self.client.post(reverse("core:pull_request"), {"repo_name": "test_repo", "pr_number": "1"})
+        self.assertEqual(response.status_code, 200)
+
+    @patch("rahnuma.core.views.get_repo_and_pr")
+    @patch("rahnuma.core.views.code_review")
+    def test_summarize_view(self, MockCodeReview, MockGetRepoAndPr):
+        mock_repo = MagicMock()
+        mock_pr = MagicMock()
+        MockGetRepoAndPr.return_value = (mock_repo, mock_pr)
+        MockCodeReview.return_value = "Test summary"
+
+        response = self.client.post(reverse("core:summarize"), {"repo_name": "test_repo", "pr_number": "1"})
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.content.decode(), "Test summary")
 
 
 class CodeReviewTests(TestCase):
