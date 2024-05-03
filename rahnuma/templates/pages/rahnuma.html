@@ -19,18 +19,18 @@
     <h2>Summary</h2>
     <div id="summary" class="summary"></div>
   </section>
-  <script>
-    // Listen for the htmx:afterSwap event on the document
-    document.body.addEventListener("htmx:afterSwap", function(event) {
-      // Check if the affected element is the #summary div
-      if (event.detail.target.id === "summary") {
-        // Get the current text content of the #summary div, which is in markdown
-        var markdownContent = event.detail.target.textContent;
-        // Parse the markdown content to HTML using marked
-        var htmlContent = marked.parse(markdownContent);
-        // Update the innerHTML of the #summary div with the parsed HTML
-        event.detail.target.innerHTML = htmlContent;
-      }
-    });
-  </script>
+  {% comment %} <script>
+   // Listen for the htmx:afterSwap event on the document
+   document.body.addEventListener("htmx:afterSwap", function(event) {
+     // Check if the affected element is the #summary div
+     if (event.detail.target.id === "summary") {
+       // Get the current text content of the #summary div, which is in markdown
+       var markdownContent = event.detail.target.textContent;
+       // Parse the markdown content to HTML using marked
+       var htmlContent = marked.parse(markdownContent);
+       // Update the innerHTML of the #summary div with the parsed HTML
+       event.detail.target.innerHTML = htmlContent;
+     }
+   });
+ </script> {% endcomment %}
 {% endblock content %}
