@@ -1,9 +1,10 @@
-from core.services.code_review import code_review
-from core.services.pull_request import get_repo_and_pr
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.http import HttpResponse
 from django.views.decorators.http import require_POST
 from django.views.generic import TemplateView
+
+from .services.code_review import code_review
+from .services.pull_request import get_repo_and_pr
 
 
 class RahnumaView(LoginRequiredMixin, TemplateView):
