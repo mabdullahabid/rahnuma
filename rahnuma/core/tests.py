@@ -5,6 +5,7 @@ from django.test import RequestFactory, TestCase
 from django.urls import reverse
 
 from rahnuma.core.services.code_review import code_review
+from rahnuma.core.services.pull_request import get_repo_and_pr
 from rahnuma.core.views import pull_request, summarize
 
 
@@ -23,6 +24,32 @@ class PullRequestViewTest(TestCase):
 
         self.assertEqual(response.status_code, 200)
         mock_get_repo_and_pr.assert_called_once_with("test_repo", 1)
+
+
+class GetRepoAndPrTest(TestCase):
+    @patch("rahnuma.core.services.pull_request.Github")
+    @patch("rahnuma.core.services.pull_request.Auth.Token")
+    @patch("rahnuma.core.services.pull_request.settings")
+    def test_get_repo_and_pr(self, mock_settings, mock_auth_token, mock_github):
+        mock_auth = MagicMock()
+        mock_auth_token.return_value = mock_auth
+        mock_github_instance = MagicMock()
+        mock_github.return_value = mock_github_instance
+        mock_repo = MagicMock()
+        mock_github_instance.get_repo.return_value = mock_repo
+        mock_pr = MagicMock()
+        mock_repo.get_pull.return_value = mock_pr
+
+        mock_settings.GITHUB_TOKEN = "mock_token"
+
+        repo, pr = get_repo_and_pr("test_repo", 1)
+
+        self.assertEqual(repo, mock_repo)
+        self.assertEqual(pr, mock_pr)
+        mock_auth_token.assert_called_once_with("mock_token")
+        mock_github.assert_called_once_with(auth=mock_auth)
+        mock_github_instance.get_repo.assert_called_once_with("test_repo")
+        mock_repo.get_pull.assert_called_once_with(1)
 
 
 class SummarizeViewTest(TestCase):
