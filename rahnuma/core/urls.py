@@ -1,10 +1,10 @@
 from django.urls import path
 
-from . import views
+from rahnuma.core.views import RahnumaView, pull_request, summarize
 
 app_name = "core"
 urlpatterns = [
-    path("", views.RahnumaView.as_view(), name="rahnuma"),
-    path("pull-request/", views.pull_request, name="pull_request"),
-    path("summarize/", views.summarize, name="summarize"),
+    path("", RahnumaView.as_view(), name="rahnuma"),
+    path("pull-request/", pull_request, name="pull_request"),
+    path("summarize/", summarize, name="summarize"),
 ]
