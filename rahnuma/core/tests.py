@@ -6,11 +6,11 @@ from .services.code_review import code_review
 
 
 class CodeReviewTests(TestCase):
-    @patch("core.services.bot.Bot")
-    @patch("core.services.options.Options")
-    @patch("core.services.prompts.Prompts")
-    @patch("core.services.inputs.Inputs")
-    @patch("core.services.options.OpenAIOptions")
+    @patch("rahnuma.core.services.bot.Bot")
+    @patch("rahnuma.core.services.options.Options")
+    @patch("rahnuma.core.services.prompts.Prompts")
+    @patch("rahnuma.core.services.inputs.Inputs")
+    @patch("rahnuma.core.services.options.OpenAIOptions")
     def test_code_review(self, MockOpenAIOptions, MockInputs, MockPrompts, MockOptions, MockBot):
         # Arrange
         mock_repo = Mock()
