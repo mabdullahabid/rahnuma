@@ -7,7 +7,6 @@ hiredis==2.3.2  # https://github.com/redis/hiredis-py
 celery==5.3.6  # pyup: < 6.0  # https://github.com/celery/celery
 django-celery-beat==2.5.0  # https://github.com/celery/django-celery-beat
 flower==2.0.1  # https://github.com/mher/flower
-uvicorn[standard]==0.27.0.post1  # https://github.com/encode/uvicorn
 
 # Django
 # ------------------------------------------------------------------------------
@@ -27,7 +26,6 @@ drf-spectacular==0.27.1  # https://github.com/tfranzel/drf-spectacular
 # Custom
 # ------------------------------------------------------------------------------
 django-htmx==1.17.3  # https://github.com/adamchainz/django-htmx
-PyGithub==2.3.0 # https://github.com/PyGithub/PyGithub
-openai==1.25.1 # https://github.com/openai/openai-python
+openai==1.13.3 # https://github.com/openai/openai-python
 pr-agent @ git+https://github.com/mabdullahabid/pr-agent.git@586887e072edd8266c6f0698dd4c8a1a875c67d6
 requests>=2.32.0 # not directly required, pinned by Snyk to avoid a vulnerability
