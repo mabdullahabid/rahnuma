@@ -10,3 +10,4 @@ sentry-sdk==2.1.1  # https://github.com/getsentry/sentry-python
 # ------------------------------------------------------------------------------
 django-anymail[sendgrid]==10.2  # https://github.com/anymail/django-anymail
 requests>=2.32.0 # not directly required, pinned by Snyk to avoid a vulnerability
+urllib3>=2.2.2 # not directly required, pinned by Snyk to avoid a vulnerability
