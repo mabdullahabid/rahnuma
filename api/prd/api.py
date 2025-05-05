@@ -262,13 +262,57 @@ def add_feature(request, prd_id: int, category_id: int, payload: FeatureSchema):
             feature=feature
         )
     
-    return feature
+    # Create a serializable response that converts category to string
+    feature_data = {
+        "id": feature.id,
+        "title": feature.title,
+        "description": feature.description,
+        "category": category.name,  # Convert Category object to string
+        "priority": feature.priority,
+        "estimate_hours": feature.estimate_hours,
+        "acceptance_criteria": []
+    }
+    
+    # Add acceptance criteria to response
+    for ac in feature.acceptance_criteria.all():
+        feature_data["acceptance_criteria"].append({
+            "id": ac.id,
+            "description": ac.description
+        })
+    
+    return feature_data
 
 @router.get("/{prd_id}/categories/{category_id}/features", response=List[FeatureSchema])
 def list_features(request, prd_id: int, category_id: int):
     """Get all features for a specific category"""
     category = get_object_or_404(Category, id=category_id, prd_id=prd_id)
-    return Feature.objects.filter(category=category)
+    
+    # Get all features for this category
+    features = Feature.objects.filter(category=category)
+    
+    # Create a serializable response with category as string
+    feature_list = []
+    for feature in features:
+        feature_data = {
+            "id": feature.id,
+            "title": feature.title,
+            "description": feature.description,
+            "category": category.name,  # Convert Category object to string
+            "priority": feature.priority,
+            "estimate_hours": feature.estimate_hours,
+            "acceptance_criteria": []
+        }
+        
+        # Add acceptance criteria to response
+        for ac in feature.acceptance_criteria.all():
+            feature_data["acceptance_criteria"].append({
+                "id": ac.id,
+                "description": ac.description
+            })
+        
+        feature_list.append(feature_data)
+    
+    return feature_list
 
 @router.put("/{prd_id}/categories/{category_id}/features/{feature_id}", response=FeatureSchema)
 @transaction.atomic
@@ -295,7 +339,25 @@ def update_feature(request, prd_id: int, category_id: int, feature_id: int, payl
             feature=feature
         )
     
-    return feature
+    # Create a serializable response that converts category to string
+    feature_data = {
+        "id": feature.id,
+        "title": feature.title,
+        "description": feature.description,
+        "category": category.name,  # Convert Category object to string
+        "priority": feature.priority,
+        "estimate_hours": feature.estimate_hours,
+        "acceptance_criteria": []
+    }
+    
+    # Add acceptance criteria to response
+    for ac in feature.acceptance_criteria.all():
+        feature_data["acceptance_criteria"].append({
+            "id": ac.id,
+            "description": ac.description
+        })
+    
+    return feature_data
 
 @router.delete("/{prd_id}/categories/{category_id}/features/{feature_id}")
 def delete_feature(request, prd_id: int, category_id: int, feature_id: int):
