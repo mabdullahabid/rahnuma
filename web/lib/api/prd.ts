@@ -40,42 +40,20 @@ const fetchWithAuth = async (url: string, options: RequestInit = {}) => {
 export const prdService = {
   // Get all PRDs
   getAllPRDs: async () => {
-    const token = localStorage.getItem('auth_token');
-    
-    return fetch(`${API_BASE_URL}/prd/`, {
-      headers: {
-        'Authorization': `Bearer ${token}`
-      }
-    })
-      .then(handleResponse);
+    return fetchWithAuth('/prd/') as Promise<{items: any[], count: number}>;
   },
 
   // Get a single PRD by ID
   getPRD: async (id: string) => {
-    const token = localStorage.getItem('auth_token');
-    
-    return fetch(`${API_BASE_URL}/prd/${id}`, {
-      headers: {
-        'Authorization': `Bearer ${token}`
-      }
-    })
-      .then(handleResponse);
+    return fetchWithAuth(`/prd/${id}`);
   },
 
   // Create a new PRD
   createPRD: async (data: { title: string; client_name?: string; overview?: string }) => {
-    const token = localStorage.getItem('auth_token');
-    
-    return fetch(`${API_BASE_URL}/prd/`, {
+    return fetchWithAuth('/prd/', {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`
-      },
       body: JSON.stringify(data),
-    })
-      .then(handleResponse)
-      .then(data => data.id);
+    }).then(data => data.id);
   },
 
   // Update an existing PRD
@@ -148,7 +126,6 @@ export const prdService = {
 
   // Upload reference files
   uploadReferenceFiles: async (prdId: string, files: File[]) => {
-    const token = localStorage.getItem('auth_token');
     const formData = new FormData();
     
     // Add the PRD ID
@@ -159,28 +136,26 @@ export const prdService = {
       formData.append('files', file);
     });
     
+    // We need to use a custom fetch here since fetchWithAuth sets Content-Type to application/json
+    const token = getToken();
+    const headers: HeadersInit = {};
+    
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
+    
     return fetch(`${API_BASE_URL}/prd/${prdId}/upload-references`, {
       method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${token}`
-      },
+      headers,
       body: formData,
-    })
-      .then(handleResponse);
+    }).then(handleResponse);
   },
 
   // Add reference URLs
   addReferenceUrls: async (prdId: string, urls: string[]) => {
-    const token = localStorage.getItem('auth_token');
-    
-    return fetch(`${API_BASE_URL}/prd/${prdId}/add-reference-urls`, {
+    return fetchWithAuth(`/prd/${prdId}/add-reference-urls`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`
-      },
       body: JSON.stringify({ urls }),
-    })
-      .then(handleResponse);
+    });
   },
 };
