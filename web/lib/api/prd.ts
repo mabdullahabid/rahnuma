@@ -38,26 +38,27 @@ const fetchWithAuth = async (url: string, options: RequestInit = {}) => {
 
 // API service for PRD module
 export const prdService = {
-  // Get all PRDs
+  // === PRD Resource ===
+  // Get all PRDs (list)
   getAllPRDs: async () => {
-    return fetchWithAuth('/prd/') as Promise<{items: any[], count: number}>;
+    return fetchWithAuth('/prd') as Promise<{items: any[], count: number}>;
   },
 
   // Get a single PRD by ID
-  getPRD: async (id: string) => {
+  getPRD: async (id: number | string) => {
     return fetchWithAuth(`/prd/${id}`);
   },
 
   // Create a new PRD
   createPRD: async (data: { title: string; client_name?: string; overview?: string }) => {
-    return fetchWithAuth('/prd/', {
+    return fetchWithAuth('/prd', {
       method: 'POST',
       body: JSON.stringify(data),
     }).then(data => data.id);
   },
 
   // Update an existing PRD
-  updatePRD: (id: number, data: { title?: string; client_name?: string; project_overview?: string }) => {
+  updatePRD: (id: number | string, data: { title?: string; client_name?: string; project_overview?: string }) => {
     return fetchWithAuth(`/prd/${id}`, {
       method: 'PUT',
       body: JSON.stringify(data),
@@ -65,40 +66,78 @@ export const prdService = {
   },
 
   // Delete a PRD
-  deletePRD: (id: number) => {
+  deletePRD: (id: number | string) => {
     return fetchWithAuth(`/prd/${id}`, {
       method: 'DELETE',
     });
   },
 
+  // === Role Resource ===
+  // Get all roles for a PRD
+  getRoles: (prdId: number | string) => {
+    return fetchWithAuth(`/prd/${prdId}/roles`);
+  },
+
   // Add a user role to a PRD
-  addRole: (prdId: number, data: { name: string; description: string }) => {
+  addRole: (prdId: number | string, data: { name: string; description: string }) => {
     return fetchWithAuth(`/prd/${prdId}/roles`, {
       method: 'POST',
       body: JSON.stringify(data),
     });
   },
 
-  // Get all roles for a PRD
-  getRoles: (prdId: number) => {
-    return fetchWithAuth(`/prd/${prdId}/roles`);
+  // Update an existing role
+  updateRole: (prdId: number | string, roleId: number | string, data: { name: string; description: string }) => {
+    return fetchWithAuth(`/prd/${prdId}/roles/${roleId}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+  },
+
+  // Delete a role
+  deleteRole: (prdId: number | string, roleId: number | string) => {
+    return fetchWithAuth(`/prd/${prdId}/roles/${roleId}`, {
+      method: 'DELETE',
+    });
+  },
+
+  // === Category Resource ===
+  // Get all categories for a PRD
+  getCategories: (prdId: number | string) => {
+    return fetchWithAuth(`/prd/${prdId}/categories`);
   },
 
   // Add a category to a PRD
-  addCategory: (prdId: number, data: { name: string; description: string }) => {
+  addCategory: (prdId: number | string, data: { name: string; description: string }) => {
     return fetchWithAuth(`/prd/${prdId}/categories`, {
       method: 'POST',
       body: JSON.stringify(data),
     });
   },
 
-  // Get all categories for a PRD
-  getCategories: (prdId: number) => {
-    return fetchWithAuth(`/prd/${prdId}/categories`);
+  // Update a category
+  updateCategory: (prdId: number | string, categoryId: number | string, data: { name: string; description: string }) => {
+    return fetchWithAuth(`/prd/${prdId}/categories/${categoryId}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+  },
+
+  // Delete a category
+  deleteCategory: (prdId: number | string, categoryId: number | string) => {
+    return fetchWithAuth(`/prd/${prdId}/categories/${categoryId}`, {
+      method: 'DELETE',
+    });
+  },
+
+  // === Feature Resource ===
+  // Get features for a category
+  getFeatures: (prdId: number | string, categoryId: number | string) => {
+    return fetchWithAuth(`/prd/${prdId}/categories/${categoryId}/features`);
   },
 
   // Add a feature to a category
-  addFeature: (prdId: number, categoryId: number, data: {
+  addFeature: (prdId: number | string, categoryId: number | string, data: {
     title: string;
     description: string;
     priority: string;
@@ -111,25 +150,51 @@ export const prdService = {
     });
   },
 
+  // Update a feature
+  updateFeature: (prdId: number | string, categoryId: number | string, featureId: number | string, data: {
+    title: string;
+    description: string;
+    priority: string;
+    estimate_hours: number;
+    acceptance_criteria: { description: string }[];
+  }) => {
+    return fetchWithAuth(`/prd/${prdId}/categories/${categoryId}/features/${featureId}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+  },
+
+  // Delete a feature
+  deleteFeature: (prdId: number | string, categoryId: number | string, featureId: number | string) => {
+    return fetchWithAuth(`/prd/${prdId}/categories/${categoryId}/features/${featureId}`, {
+      method: 'DELETE',
+    });
+  },
+
+  // === Reference Resource ===
+  // Get all references for a PRD
+  getReferences: (prdId: number | string) => {
+    return fetchWithAuth(`/prd/${prdId}/references`);
+  },
+
   // Add a project reference to a PRD
-  addReference: (prdId: number, data: { name: string; content_type: string; content: string }) => {
+  addReference: (prdId: number | string, data: { name: string; content_type: string; content: string }) => {
     return fetchWithAuth(`/prd/${prdId}/references`, {
       method: 'POST',
       body: JSON.stringify(data),
     });
   },
 
-  // Get all references for a PRD
-  getReferences: (prdId: number) => {
-    return fetchWithAuth(`/prd/${prdId}/references`);
+  // Delete a reference
+  deleteReference: (prdId: number | string, referenceId: number | string) => {
+    return fetchWithAuth(`/prd/${prdId}/references/${referenceId}`, {
+      method: 'DELETE',
+    });
   },
 
   // Upload reference files
-  uploadReferenceFiles: async (prdId: string, files: File[]) => {
+  uploadReferenceFiles: async (prdId: number | string, files: File[]) => {
     const formData = new FormData();
-    
-    // Add the PRD ID
-    formData.append('prd_id', prdId);
     
     // Add each file to the form data
     files.forEach(file => {
@@ -152,7 +217,7 @@ export const prdService = {
   },
 
   // Add reference URLs
-  addReferenceUrls: async (prdId: string, urls: string[]) => {
+  addReferenceUrls: async (prdId: number | string, urls: string[]) => {
     return fetchWithAuth(`/prd/${prdId}/add-reference-urls`, {
       method: 'POST',
       body: JSON.stringify({ urls }),

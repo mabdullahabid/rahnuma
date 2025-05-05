@@ -173,6 +173,21 @@ def list_references(request, prd_id: int):
     
     return response_references
 
+@router.delete("/{prd_id}/references/{reference_id}")
+def delete_reference(request, prd_id: int, reference_id: int):
+    """Delete a project reference"""
+    reference = get_object_or_404(ProjectReference, id=reference_id, prd_id=prd_id)
+    
+    # If it's a file reference, delete the file too
+    if reference.file:
+        if default_storage.exists(reference.file.name):
+            default_storage.delete(reference.file.name)
+    
+    # Delete the reference from the database
+    reference.delete()
+    
+    return {"success": True}
+
 # Function to extract text from different file types
 def extract_text_from_file(file_path: str) -> str:
     """Extract text content from different file types"""
@@ -236,7 +251,7 @@ def upload_reference_files(request, prd_id: int, files: List[UploadedFile] = Fil
         )
         
         # Save the file
-        file_path = os.path.join('reference_files', str(prd.id), unique_filename)
+        file_path = os.path.join('prd_files', str(prd.id), unique_filename)
         file_path = default_storage.save(file_path, file)
         reference.file.name = file_path
         
