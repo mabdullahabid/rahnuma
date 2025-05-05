@@ -1,12 +1,13 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { usePrdStore } from "@/lib/store/prd-store";
+import { usePrdStore, exampleData } from "@/lib/store/prd-store";
 import { prdService } from "@/lib/api/prd";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import WizardLayout from "@/components/prd/wizard-layout";
 import { Category } from "@/lib/store/prd-store";
+import Link from "next/link";
 
 export default function CategoriesPage() {
   const { 
@@ -19,6 +20,7 @@ export default function CategoriesPage() {
   const [editCategory, setEditCategory] = useState<Category | null>(null);
   const [loading, setLoading] = useState(false);
   const [loadingCategories, setLoadingCategories] = useState(true);
+  const [showExamples, setShowExamples] = useState(false);
 
   // Fetch categories when component mounts
   useEffect(() => {
@@ -32,10 +34,20 @@ export default function CategoriesPage() {
         console.log("Fetching categories for PRD ID:", currentPrdId);
         const data = await prdService.getCategories(currentPrdId);
         console.log("Received categories data:", data);
+        
+        if (data.length === 0) {
+          // If no categories returned from API, show the option to load examples
+          setShowExamples(true);
+        } else {
+          setShowExamples(false);
+        }
+        
         setCategories(data);
       } catch (error) {
         console.error("Failed to fetch categories:", error);
         toast.error("Failed to load categories");
+        // Show examples option if there was an error fetching categories
+        setShowExamples(true);
       } finally {
         setLoadingCategories(false);
       }
@@ -43,6 +55,34 @@ export default function CategoriesPage() {
     
     fetchCategories();
   }, [currentPrdId, setCategories]);
+
+  // Add the example categories
+  const handleAddExamples = async () => {
+    if (!currentPrdId) return;
+    
+    try {
+      setLoading(true);
+      
+      // Add each example category to the backend
+      const savedCategories = [];
+      for (const category of exampleData.categories) {
+        // Remove the negative ID before sending to backend
+        const { id, ...categoryData } = category;
+        const savedCategory = await prdService.addCategory(currentPrdId, categoryData);
+        savedCategories.push(savedCategory);
+      }
+      
+      // Update the store with the saved categories that now have proper backend IDs
+      setCategories(savedCategories);
+      setShowExamples(false);
+      toast.success("Example categories added successfully");
+    } catch (error) {
+      console.error("Failed to add example categories:", error);
+      toast.error("Failed to add example categories");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   // Add a new category
   const handleAddCategory = async () => {
@@ -70,6 +110,17 @@ export default function CategoriesPage() {
   const handleUpdateCategory = async () => {
     if (!currentPrdId || !editCategory) return;
     
+    // Handle example data differently (skip API call)
+    if (editCategory.id < 0) {
+      const updatedCategories = storedCategories.map(cat => 
+        cat.id === editCategory.id ? editCategory : cat
+      );
+      setCategories(updatedCategories);
+      setEditCategory(null);
+      toast.success("Example category updated successfully");
+      return;
+    }
+    
     try {
       setLoading(true);
       const data = await prdService.updateCategory(currentPrdId, editCategory.id, {
@@ -96,6 +147,14 @@ export default function CategoriesPage() {
       return;
     }
     
+    // Handle example data differently (skip API call)
+    if (categoryId < 0) {
+      const updatedCategories = storedCategories.filter(cat => cat.id !== categoryId);
+      setCategories(updatedCategories);
+      toast.success("Example category deleted successfully");
+      return;
+    }
+    
     try {
       setLoading(true);
       await prdService.deleteCategory(currentPrdId, categoryId);
@@ -117,11 +176,25 @@ export default function CategoriesPage() {
       nextLink="/prd/create/wizard/features"
     >
       <div>
-        <h2 className="text-xl font-semibold mb-4">Define Feature Categories</h2>
-        <p className="text-slate-600 mb-6">
-          Group related features into logical categories to organize your PRD. 
-          Categories could be based on functionality, user type, or system components.
-        </p>
+        <div className="flex justify-between items-center mb-4">
+          <div>
+            <h2 className="text-xl font-semibold">Define Feature Categories</h2>
+            <p className="text-slate-600">
+              Group related features into logical categories to organize your PRD. 
+              Categories could be based on functionality, user type, or system components.
+            </p>
+          </div>
+          
+          {/* Skip to AI Assistance button */}
+          <Link href={`/prd/create/wizard/ai-assistance?prdId=${currentPrdId}`}>
+            <Button variant="outline" className="gap-2">
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="m9 18 6-6-6-6"></path>
+              </svg>
+              Skip to AI Assistance
+            </Button>
+          </Link>
+        </div>
 
         <div className="space-y-4">
           {loadingCategories ? (
@@ -131,6 +204,18 @@ export default function CategoriesPage() {
             </div>
           ) : (
             <>
+              {showExamples && storedCategories.length === 0 && (
+                <div className="p-4 border border-dashed rounded-md bg-slate-50 mb-6">
+                  <h3 className="font-medium mb-2">Need Ideas?</h3>
+                  <p className="text-sm text-slate-600 mb-4">
+                    You can start with example categories to help you get started quickly.
+                  </p>
+                  <Button onClick={handleAddExamples} variant="outline">
+                    Load Example Categories
+                  </Button>
+                </div>
+              )}
+              
               {storedCategories.map(category => (
                 <div key={category.id} className="border rounded-lg p-4">
                   <div className="flex justify-between mb-2">

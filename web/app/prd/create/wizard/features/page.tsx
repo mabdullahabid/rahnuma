@@ -1,12 +1,13 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { usePrdStore } from "@/lib/store/prd-store";
+import { usePrdStore, exampleData } from "@/lib/store/prd-store";
 import { prdService } from "@/lib/api/prd";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import WizardLayout from "@/components/prd/wizard-layout";
 import { Category, Feature, AcceptanceCriteria } from "@/lib/store/prd-store";
+import Link from "next/link";
 
 export default function FeaturesPage() {
   const { 
@@ -20,6 +21,7 @@ export default function FeaturesPage() {
   const [currentCategoryFeatures, setCurrentCategoryFeatures] = useState<Feature[]>([]);
   const [loading, setLoading] = useState(false);
   const [loadingFeatures, setLoadingFeatures] = useState(false);
+  const [showExamples, setShowExamples] = useState(false);
   
   // New feature state
   const [newFeature, setNewFeature] = useState<{
@@ -57,6 +59,13 @@ export default function FeaturesPage() {
         const data = await prdService.getFeatures(currentPrdId, selectedCategoryId);
         console.log("Received features data:", data);
         
+        // Show examples option if no features found
+        if (data.length === 0) {
+          setShowExamples(true);
+        } else {
+          setShowExamples(false);
+        }
+        
         // Add fetched features to the store
         setFeatures((prevFeatures) => {
           // Filter out any features for this category that might already exist
@@ -71,6 +80,9 @@ export default function FeaturesPage() {
       } catch (error) {
         console.error("Failed to fetch features:", error);
         toast.error("Failed to load features");
+        
+        // Show examples if we fail to fetch features
+        setShowExamples(true);
       } finally {
         setLoadingFeatures(false);
       }
@@ -78,6 +90,76 @@ export default function FeaturesPage() {
     
     fetchFeatures();
   }, [currentPrdId, selectedCategoryId, setFeatures]);
+
+  // Add example features for the selected category
+  const handleAddExamples = async () => {
+    if (!currentPrdId || !selectedCategoryId) return;
+    
+    try {
+      setLoading(true);
+      
+      // Map between real category and example features
+      let categoryExamples;
+      const selectedCategory = storedCategories.find(c => c.id === selectedCategoryId);
+      
+      if (selectedCategory) {
+        // Find example features based on category name
+        if (selectedCategory.name.toLowerCase().includes('admin')) {
+          categoryExamples = exampleData.features.filter(f => f.category_id === -1); // Admin Panel
+        } else if (selectedCategory.name.toLowerCase().includes('user')) {
+          categoryExamples = exampleData.features.filter(f => f.category_id === -2); // User Management
+        } else if (selectedCategory.name.toLowerCase().includes('report')) {
+          categoryExamples = exampleData.features.filter(f => f.category_id === -3); // Reporting
+        } else {
+          // Default to first example feature set if no match
+          categoryExamples = exampleData.features.slice(0, 1);
+        }
+      } else {
+        categoryExamples = [];
+      }
+      
+      if (categoryExamples.length === 0) {
+        toast.error("No example features available for this category");
+        return;
+      }
+      
+      // Add each example feature to the backend
+      const savedFeatures = [];
+      for (const feature of categoryExamples) {
+        // Transform the feature data to match the API's expected format
+        const apiFeatureData = {
+          title: feature.title,
+          description: feature.description,
+          priority: feature.priority,
+          estimate_hours: feature.estimate_hours,
+          category: selectedCategory?.name || "", // Backend expects category as string
+          acceptance_criteria: feature.acceptance_criteria
+        };
+        
+        const savedFeature = await prdService.addFeature(currentPrdId, selectedCategoryId, apiFeatureData);
+        savedFeatures.push(savedFeature);
+      }
+      
+      // Update store with the saved features that now have proper backend IDs
+      setFeatures((prevFeatures) => {
+        // Filter out any features for this category that might already exist
+        const otherFeatures = prevFeatures.filter(
+          feature => feature.category_id !== selectedCategoryId
+        );
+        return [...otherFeatures, ...savedFeatures];
+      });
+      
+      // Update current category features view
+      setCurrentCategoryFeatures(savedFeatures);
+      setShowExamples(false);
+      toast.success("Example features added successfully");
+    } catch (error) {
+      console.error("Failed to add example features:", error);
+      toast.error("Failed to add example features");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   // Handle category selection
   const handleCategoryChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
@@ -193,7 +275,19 @@ export default function FeaturesPage() {
       nextLink="/prd/create/wizard/ai-assistance"
     >
       <div>
-        <h2 className="text-xl font-semibold mb-2">Define Features</h2>
+        <div className="flex justify-between items-center mb-4">
+          <h2 className="text-xl font-semibold">Define Features</h2>
+          
+          {/* Skip to AI Assistance button */}
+          <Link href={`/prd/create/wizard/ai-assistance?prdId=${currentPrdId}`}>
+            <Button variant="outline" className="gap-2">
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="m9 18 6-6-6-6"></path>
+              </svg>
+              Skip to AI Assistance
+            </Button>
+          </Link>
+        </div>
         <p className="text-slate-600 mb-6">
           Specify individual features for each category, including their details, priority, 
           effort estimates, and acceptance criteria.
@@ -237,50 +331,63 @@ export default function FeaturesPage() {
             ) : (
               <>
                 {/* Feature Cards */}
-                {currentCategoryFeatures.length === 0 ? (
-                  <p className="text-slate-600 italic mb-4">No features yet for this category. Add your first feature below.</p>
-                ) : (
-                  <div className="space-y-4 mb-6">
-                    {currentCategoryFeatures.map(feature => (
-                      <div key={feature.id} className="border rounded-lg p-4">
-                        <div className="flex justify-between mb-2">
-                          <h4 className="font-medium">{feature.title}</h4>
-                          <div className="flex gap-2">
-                            <span className="px-2 py-1 bg-green-100 text-green-800 text-xs rounded-full">
-                              {feature.priority} Priority
-                            </span>
-                            <span className="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full">
-                              {feature.estimate_hours} hours
-                            </span>
-                          </div>
-                        </div>
-                        <p className="text-sm text-slate-600 mb-3">
-                          {feature.description}
+                {currentCategoryFeatures.length === 0 && (
+                  <div>
+                    {showExamples && selectedCategoryId && (
+                      <div className="p-4 border border-dashed rounded-md bg-slate-50 mb-6">
+                        <h3 className="font-medium mb-2">Need Ideas?</h3>
+                        <p className="text-sm text-slate-600 mb-4">
+                          You can start with example features to help you get started quickly.
                         </p>
-                        
-                        <div className="mt-3">
-                          <h5 className="text-sm font-medium mb-2">Acceptance Criteria:</h5>
-                          <ul className="list-disc list-inside text-sm text-slate-600 space-y-1">
-                            {feature.acceptance_criteria.map((criteria, index) => (
-                              <li key={index}>{criteria.description}</li>
-                            ))}
-                          </ul>
-                        </div>
-                        
-                        <div className="flex justify-end gap-2 mt-3">
-                          <button 
-                            className="text-slate-500 hover:text-red-600"
-                            onClick={() => handleDeleteFeature(feature.id)}
-                          >
-                            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                              <path fillRule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clipRule="evenodd" />
-                            </svg>
-                          </button>
-                        </div>
+                        <Button onClick={handleAddExamples} variant="outline">
+                          Load Example Features
+                        </Button>
                       </div>
-                    ))}
+                    )}
+                    <p className="text-slate-600 italic mb-4">No features yet for this category. Add your first feature below.</p>
                   </div>
                 )}
+
+                <div className="space-y-4 mb-6">
+                  {currentCategoryFeatures.map(feature => (
+                    <div key={feature.id} className="border rounded-lg p-4">
+                      <div className="flex justify-between mb-2">
+                        <h4 className="font-medium">{feature.title}</h4>
+                        <div className="flex gap-2">
+                          <span className="px-2 py-1 bg-green-100 text-green-800 text-xs rounded-full">
+                            {feature.priority} Priority
+                          </span>
+                          <span className="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full">
+                            {feature.estimate_hours} hours
+                          </span>
+                        </div>
+                      </div>
+                      <p className="text-sm text-slate-600 mb-3">
+                        {feature.description}
+                      </p>
+                      
+                      <div className="mt-3">
+                        <h5 className="text-sm font-medium mb-2">Acceptance Criteria:</h5>
+                        <ul className="list-disc list-inside text-sm text-slate-600 space-y-1">
+                          {feature.acceptance_criteria.map((criteria, index) => (
+                            <li key={index}>{criteria.description}</li>
+                          ))}
+                        </ul>
+                      </div>
+                      
+                      <div className="flex justify-end gap-2 mt-3">
+                        <button 
+                          className="text-slate-500 hover:text-red-600"
+                          onClick={() => handleDeleteFeature(feature.id)}
+                        >
+                          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                            <path fillRule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clipRule="evenodd" />
+                          </svg>
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
 
                 {/* Add New Feature Form */}
                 <div className="border border-dashed rounded-lg p-4">

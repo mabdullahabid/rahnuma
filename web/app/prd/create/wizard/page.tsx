@@ -1,12 +1,13 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { usePrdStore } from "@/lib/store/prd-store";
+import { usePrdStore, exampleData } from "@/lib/store/prd-store";
 import { prdService } from "@/lib/api/prd";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import WizardLayout from "@/components/prd/wizard-layout";
 import { Role } from "@/lib/store/prd-store";
+import Link from "next/link";
 
 export default function PRDWizard() {
   const { 
@@ -19,6 +20,7 @@ export default function PRDWizard() {
   const [editRole, setEditRole] = useState<Role | null>(null);
   const [loading, setLoading] = useState(false);
   const [loadingRoles, setLoadingRoles] = useState(true);
+  const [showExamples, setShowExamples] = useState(false);
 
   // Fetch roles when component mounts
   useEffect(() => {
@@ -33,10 +35,20 @@ export default function PRDWizard() {
         console.log("Fetching roles for PRD ID:", currentPrdId);
         const data = await prdService.getRoles(currentPrdId);
         console.log("Received roles data:", data);
+        
+        if (data.length === 0) {
+          // If no roles returned from API, show the option to load examples
+          setShowExamples(true);
+        } else {
+          setShowExamples(false);
+        }
+        
         setRoles(data);
       } catch (error) {
         console.error("Failed to fetch roles:", error);
         toast.error("Failed to load user roles");
+        // Show examples option if there was an error fetching roles
+        setShowExamples(true);
       } finally {
         setLoadingRoles(false);
       }
@@ -44,6 +56,34 @@ export default function PRDWizard() {
     
     fetchRoles();
   }, [currentPrdId, setRoles]);
+
+  // Add the example roles
+  const handleAddExamples = async () => {
+    if (!currentPrdId) return;
+    
+    try {
+      setLoading(true);
+      
+      // Add each example role to the backend
+      const savedRoles = [];
+      for (const role of exampleData.roles) {
+        // Remove the negative ID before sending to backend
+        const { id, ...roleData } = role;
+        const savedRole = await prdService.addRole(currentPrdId, roleData);
+        savedRoles.push(savedRole);
+      }
+      
+      // Update the store with the saved roles that now have proper backend IDs
+      setRoles(savedRoles);
+      setShowExamples(false);
+      toast.success("Example roles added successfully");
+    } catch (error) {
+      console.error("Failed to add example roles:", error);
+      toast.error("Failed to add example roles");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   // Add a new role
   const handleAddRole = async () => {
@@ -71,6 +111,17 @@ export default function PRDWizard() {
   const handleUpdateRole = async () => {
     if (!currentPrdId || !editRole) return;
     
+    // Skip API call for example roles (negative IDs)
+    if (editRole.id < 0) {
+      const updatedRoles = storedRoles.map(role => 
+        role.id === editRole.id ? editRole : role
+      );
+      setRoles(updatedRoles);
+      setEditRole(null);
+      toast.success("Example role updated successfully");
+      return;
+    }
+    
     try {
       setLoading(true);
       const data = await prdService.updateRole(currentPrdId, editRole.id, {
@@ -97,6 +148,14 @@ export default function PRDWizard() {
       return;
     }
     
+    // Handle example data differently (no API call needed)
+    if (roleId < 0) {
+      const updatedRoles = storedRoles.filter(role => role.id !== roleId);
+      setRoles(updatedRoles);
+      toast.success("Example role deleted successfully");
+      return;
+    }
+    
     try {
       setLoading(true);
       await prdService.deleteRole(currentPrdId, roleId);
@@ -117,11 +176,25 @@ export default function PRDWizard() {
       nextLink="/prd/create/wizard/categories"
     >
       <div>
-        <h2 className="text-xl font-semibold mb-4">Define User Roles</h2>
-        <p className="text-slate-600 mb-6">
-          Identify all the different types of users who will interact with your product and 
-          describe their roles and responsibilities.
-        </p>
+        <div className="flex justify-between items-center mb-4">
+          <div>
+            <h2 className="text-xl font-semibold">Define User Roles</h2>
+            <p className="text-slate-600">
+              Identify all the different types of users who will interact with your product and 
+              describe their roles and responsibilities.
+            </p>
+          </div>
+          
+          {/* Skip to AI Assistance button */}
+          <Link href={`/prd/create/wizard/ai-assistance?prdId=${currentPrdId}`}>
+            <Button variant="outline" className="gap-2">
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="m9 18 6-6-6-6"></path>
+              </svg>
+              Skip to AI Assistance
+            </Button>
+          </Link>
+        </div>
 
         <div className="space-y-4">
           {loadingRoles ? (
@@ -131,6 +204,18 @@ export default function PRDWizard() {
             </div>
           ) : (
             <>
+              {showExamples && storedRoles.length === 0 && (
+                <div className="p-4 border border-dashed rounded-md bg-slate-50 mb-6">
+                  <h3 className="font-medium mb-2">Need Ideas?</h3>
+                  <p className="text-sm text-slate-600 mb-4">
+                    You can start with example user roles to help you get started quickly.
+                  </p>
+                  <Button onClick={handleAddExamples} variant="outline">
+                    Load Example Roles
+                  </Button>
+                </div>
+              )}
+            
               {storedRoles.map((role) => (
                 <div key={role.id} className="border rounded-lg p-4">
                   <div className="flex justify-between mb-2">

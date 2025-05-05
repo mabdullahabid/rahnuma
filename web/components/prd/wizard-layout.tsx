@@ -57,9 +57,10 @@ export default function WizardLayout({
     
     // If we have a prdId in the URL or store, add it to the link
     if (prdId) {
-      return `${path}?prdId=${prdId}`;
+      // Check if the path already has query params
+      return path.includes('?') ? `${path}&prdId=${prdId}` : `${path}?prdId=${prdId}`;
     } else if (currentPrdId) {
-      return `${path}?prdId=${currentPrdId}`;
+      return path.includes('?') ? `${path}&prdId=${currentPrdId}` : `${path}?prdId=${currentPrdId}`;
     }
     
     return path;

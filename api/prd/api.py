@@ -46,7 +46,64 @@ def create_prd(request, payload: PRDCreateSchema):
 @router.get("/{prd_id}", response=PRDSchema)
 def get_prd(request, prd_id: int):
     prd = get_object_or_404(PRD, id=prd_id)
-    return prd
+    
+    # Create a serializable copy of the PRD data
+    prd_data = {
+        "id": prd.id,
+        "title": prd.title,
+        "client_name": prd.client_name,
+        "created_at": prd.created_at,
+        "updated_at": prd.updated_at,
+        "project_overview": prd.project_overview,
+        "reference_data_processed": prd.reference_data_processed,
+        "ai_processing_status": prd.ai_processing_status,
+        "roles": list(prd.roles.all().values()),
+        "categories": [],
+        "references": []
+    }
+    
+    # Process categories and features
+    for category in prd.categories.all():
+        category_data = {
+            "id": category.id,
+            "name": category.name,
+            "description": category.description,
+            "features": []
+        }
+        
+        # Process features - ensure category is a string not an object
+        for feature in category.features.all():
+            feature_data = {
+                "id": feature.id,
+                "title": feature.title,
+                "description": feature.description,
+                "category": category.name,  # Convert Category object to string
+                "priority": feature.priority,
+                "estimate_hours": feature.estimate_hours,
+                "acceptance_criteria": list(feature.acceptance_criteria.all().values("id", "description"))
+            }
+            category_data["features"].append(feature_data)
+            
+        prd_data["categories"].append(category_data)
+    
+    # Process references
+    for ref in prd.references.all():
+        ref_data = {
+            "id": ref.id,
+            "name": ref.name,
+            "content_type": ref.content_type,
+            "source_type": ref.source_type,
+            "content": ref.content,
+            "extracted_text": ref.extracted_text,
+            "analysis_summary": ref.analysis_summary,
+            "analyzed": ref.analyzed,
+            "uploaded_at": ref.uploaded_at,
+            "file_url": ref.file.url if ref.file else None,
+            "file_extension": ref.file_extension() if ref.file else None
+        }
+        prd_data["references"].append(ref_data)
+    
+    return prd_data
 
 @router.put("/{prd_id}", response=PRDSchema)
 @transaction.atomic
@@ -61,7 +118,64 @@ def update_prd(request, prd_id: int, payload: PRDUpdateSchema):
         prd.project_overview = payload.project_overview
     
     prd.save()
-    return prd
+    
+    # Create a serializable copy of the PRD data using the same approach as in get_prd
+    prd_data = {
+        "id": prd.id,
+        "title": prd.title,
+        "client_name": prd.client_name,
+        "created_at": prd.created_at,
+        "updated_at": prd.updated_at,
+        "project_overview": prd.project_overview,
+        "reference_data_processed": prd.reference_data_processed,
+        "ai_processing_status": prd.ai_processing_status,
+        "roles": list(prd.roles.all().values()),
+        "categories": [],
+        "references": []
+    }
+    
+    # Process categories and features
+    for category in prd.categories.all():
+        category_data = {
+            "id": category.id,
+            "name": category.name,
+            "description": category.description,
+            "features": []
+        }
+        
+        # Process features - ensure category is a string not an object
+        for feature in category.features.all():
+            feature_data = {
+                "id": feature.id,
+                "title": feature.title,
+                "description": feature.description,
+                "category": category.name,  # Convert Category object to string
+                "priority": feature.priority,
+                "estimate_hours": feature.estimate_hours,
+                "acceptance_criteria": list(feature.acceptance_criteria.all().values("id", "description"))
+            }
+            category_data["features"].append(feature_data)
+            
+        prd_data["categories"].append(category_data)
+    
+    # Process references
+    for ref in prd.references.all():
+        ref_data = {
+            "id": ref.id,
+            "name": ref.name,
+            "content_type": ref.content_type,
+            "source_type": ref.source_type,
+            "content": ref.content,
+            "extracted_text": ref.extracted_text,
+            "analysis_summary": ref.analysis_summary,
+            "analyzed": ref.analyzed,
+            "uploaded_at": ref.uploaded_at,
+            "file_url": ref.file.url if ref.file else None,
+            "file_extension": ref.file_extension() if ref.file else None
+        }
+        prd_data["references"].append(ref_data)
+    
+    return prd_data
 
 @router.delete("/{prd_id}")
 def delete_prd(request, prd_id: int):
@@ -113,6 +227,20 @@ def add_category(request, prd_id: int, payload: CategorySchema):
 def list_categories(request, prd_id: int):
     return Category.objects.filter(prd_id=prd_id)
 
+@router.put("/{prd_id}/categories/{category_id}", response=CategorySchema)
+def update_category(request, prd_id: int, category_id: int, payload: CategorySchema):
+    category = get_object_or_404(Category, id=category_id, prd_id=prd_id)
+    category.name = payload.name
+    category.description = payload.description
+    category.save()
+    return category
+
+@router.delete("/{prd_id}/categories/{category_id}")
+def delete_category(request, prd_id: int, category_id: int):
+    category = get_object_or_404(Category, id=category_id, prd_id=prd_id)
+    category.delete()
+    return {"success": True}
+
 # Feature Endpoints
 @router.post("/{prd_id}/categories/{category_id}/features", response=FeatureSchema)
 @transaction.atomic
@@ -135,6 +263,47 @@ def add_feature(request, prd_id: int, category_id: int, payload: FeatureSchema):
         )
     
     return feature
+
+@router.get("/{prd_id}/categories/{category_id}/features", response=List[FeatureSchema])
+def list_features(request, prd_id: int, category_id: int):
+    """Get all features for a specific category"""
+    category = get_object_or_404(Category, id=category_id, prd_id=prd_id)
+    return Feature.objects.filter(category=category)
+
+@router.put("/{prd_id}/categories/{category_id}/features/{feature_id}", response=FeatureSchema)
+@transaction.atomic
+def update_feature(request, prd_id: int, category_id: int, feature_id: int, payload: FeatureSchema):
+    """Update a feature"""
+    category = get_object_or_404(Category, id=category_id, prd_id=prd_id)
+    feature = get_object_or_404(Feature, id=feature_id, category=category)
+    
+    # Update feature fields
+    feature.title = payload.title
+    feature.description = payload.description
+    feature.priority = payload.priority
+    feature.estimate_hours = payload.estimate_hours
+    feature.save()
+    
+    # Update acceptance criteria
+    # Delete existing criteria
+    FeatureAcceptanceCriteria.objects.filter(feature=feature).delete()
+    
+    # Create new acceptance criteria
+    for ac in payload.acceptance_criteria:
+        FeatureAcceptanceCriteria.objects.create(
+            description=ac.description,
+            feature=feature
+        )
+    
+    return feature
+
+@router.delete("/{prd_id}/categories/{category_id}/features/{feature_id}")
+def delete_feature(request, prd_id: int, category_id: int, feature_id: int):
+    """Delete a feature"""
+    category = get_object_or_404(Category, id=category_id, prd_id=prd_id)
+    feature = get_object_or_404(Feature, id=feature_id, category=category)
+    feature.delete()
+    return {"success": True}
 
 # Project Reference Endpoints
 @router.post("/{prd_id}/references", response=ProjectReferenceResponseSchema)
