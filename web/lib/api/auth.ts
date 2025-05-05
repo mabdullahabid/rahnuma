@@ -12,19 +12,34 @@ const handleResponse = async (response: Response) => {
 
 // Authentication service
 export const authService = {
-  // Login with username and password
-  login: (username: string, password: string) => {
+  // Login with username or email and password
+  login: (usernameOrEmail: string, password: string) => {
+    // Determine if the input is an email or username
+    const isEmail = usernameOrEmail.includes('@');
+    
+    // Construct the payload based on whether it's an email or username
+    const payload = isEmail 
+      ? { email: usernameOrEmail, password } 
+      : { username: usernameOrEmail, password };
+    
     return fetch(`${API_BASE_URL}/auth/login`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ username, password }),
+      body: JSON.stringify(payload),
     })
       .then(handleResponse)
       .then(data => {
         // Store the token in localStorage
         if (data.token) {
           localStorage.setItem('auth_token', data.token);
-          localStorage.setItem('user', JSON.stringify(data.user));
+          
+          // Since we don't get user info in the response, 
+          // store a minimal user object based on login info
+          const user = {
+            username: isEmail ? '' : usernameOrEmail,
+            email: isEmail ? usernameOrEmail : '',
+          };
+          localStorage.setItem('user', JSON.stringify(user));
         }
         return data;
       });
@@ -32,7 +47,7 @@ export const authService = {
 
   // Register a new user
   register: (userData: { username: string; email: string; password: string; first_name?: string; last_name?: string }) => {
-    return fetch(`${API_BASE_URL}/auth/register`, {
+    return fetch(`${API_BASE_URL}/auth/signup`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(userData),

@@ -1,10 +1,50 @@
+"use client";
+
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
+import { useAuth } from "@/components/auth/auth-provider";
 
 export default function Home() {
+  const { user, logout, isAuthenticated } = useAuth();
+  
   return (
     <div className="min-h-screen bg-slate-50">
+      {/* Navbar */}
+      <header className="bg-white shadow-sm">
+        <div className="container mx-auto py-4 px-4 flex justify-between items-center">
+          <Link href="/" className="text-2xl font-bold text-indigo-600">
+            Rahnuma
+          </Link>
+          <div>
+            {isAuthenticated ? (
+              <div className="flex items-center gap-4">
+                <span className="text-slate-600">
+                  Hello, {user?.first_name || user?.username}
+                </span>
+                <Button 
+                  onClick={logout} 
+                  variant="outline" 
+                  className="text-slate-700 border-slate-200"
+                  size="sm"
+                >
+                  Logout
+                </Button>
+              </div>
+            ) : (
+              <div className="flex gap-2">
+                <Link href="/auth/login">
+                  <Button variant="outline" size="sm">Login</Button>
+                </Link>
+                <Link href="/auth/signup">
+                  <Button size="sm">Sign Up</Button>
+                </Link>
+              </div>
+            )}
+          </div>
+        </div>
+      </header>
+
       <div className="container mx-auto py-12 px-4">
         <div className="text-center mb-12">
           <h1 className="text-4xl font-bold mb-4">Welcome to Rahnuma</h1>
