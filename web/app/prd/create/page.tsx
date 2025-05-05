@@ -1,9 +1,78 @@
+"use client";
+
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Separator } from "@/components/ui/separator";
+import { ReferenceFileUpload } from "@/components/prd/reference-file-upload";
+import { ReferenceUrlInput } from "@/components/prd/reference-url-input";
+import { toast } from "sonner";
+import { prdService } from "@/lib/api/prd";
 
 export default function CreatePRD() {
+  const [isLoading, setIsLoading] = useState(false);
+  const [projectInfo, setProjectInfo] = useState({
+    title: "",
+    clientName: "",
+    overview: ""
+  });
+  const [referenceFiles, setReferenceFiles] = useState<File[]>([]);
+  const [referenceUrls, setReferenceUrls] = useState<string[]>([]);
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    const { name, value } = e.target;
+    setProjectInfo(prev => ({ ...prev, [name]: value }));
+  };
+
+  const handleFilesUploaded = (files: File[]) => {
+    setReferenceFiles(files);
+  };
+
+  const handleUrlsAdded = (urls: string[]) => {
+    setReferenceUrls(urls);
+  };
+
+  const handleContinue = async () => {
+    if (!projectInfo.title.trim()) {
+      toast.error("Please enter a project title");
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      // Create the PRD project
+      const prdId = await prdService.createPRD({
+        title: projectInfo.title,
+        client_name: projectInfo.clientName,
+        overview: projectInfo.overview
+      });
+
+      // Upload reference files if any
+      if (referenceFiles.length > 0) {
+        await prdService.uploadReferenceFiles(prdId, referenceFiles);
+      }
+
+      // Add reference URLs if any
+      if (referenceUrls.length > 0) {
+        await prdService.addReferenceUrls(prdId, referenceUrls);
+      }
+
+      toast.success("Project created successfully");
+      // Navigate to the wizard
+      window.location.href = `/prd/create/wizard?prdId=${prdId}`;
+    } catch (error) {
+      toast.error("Failed to create project");
+      console.error(error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   return (
-    <div className="container mx-auto py-8 px-4">
+    <>
       <div className="mb-8">
         <h1 className="text-3xl font-bold mb-2">Create New PRD</h1>
         <p className="text-slate-600">
@@ -11,82 +80,88 @@ export default function CreatePRD() {
         </p>
       </div>
 
-      <div className="bg-white rounded-lg shadow p-6">
-        <div className="flex flex-col gap-6">
-          <div className="border-b pb-6">
-            <h2 className="text-xl font-semibold mb-4">Project Information</h2>
-            <div className="grid gap-4">
-              <div>
-                <label className="block text-sm font-medium mb-1">
-                  Project Title
-                </label>
-                <input
-                  type="text"
-                  className="w-full px-3 py-2 border rounded-md"
-                  placeholder="Enter project title"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium mb-1">
-                  Client Name
-                </label>
-                <input
-                  type="text"
-                  className="w-full px-3 py-2 border rounded-md"
-                  placeholder="Enter client name"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium mb-1">
-                  Project Overview
-                </label>
-                <textarea
-                  className="w-full px-3 py-2 border rounded-md h-32"
-                  placeholder="Provide a brief overview of the project"
-                ></textarea>
-              </div>
-            </div>
-          </div>
-
-          <div className="border-b pb-6">
-            <h2 className="text-xl font-semibold mb-4">Reference Documents</h2>
-            <p className="text-slate-600 mb-4">
-              Upload or link to any reference materials such as meeting notes, 
-              requirements docs, similar apps, etc.
-            </p>
-            <div className="flex flex-col gap-4">
-              <div className="border-2 border-dashed border-slate-300 rounded-lg p-8 text-center">
-                <p className="text-slate-600 mb-2">
-                  Drag and drop files here, or click to browse
-                </p>
-                <Button className="mt-2">Browse Files</Button>
-              </div>
-              <div>
-                <label className="block text-sm font-medium mb-1">
-                  External Links
-                </label>
-                <input
-                  type="text"
-                  className="w-full px-3 py-2 border rounded-md"
-                  placeholder="Add links to reference materials"
-                />
-                <Button variant="outline" className="mt-2">
-                  Add Link
-                </Button>
+      <Card>
+        <CardContent className="p-6">
+          <div className="flex flex-col gap-6">
+            <div className="space-y-4">
+              <CardHeader className="p-0 pb-2">
+                <CardTitle className="text-xl">Project Information</CardTitle>
+              </CardHeader>
+              <div className="grid gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="title">Project Title</Label>
+                  <Input
+                    id="title"
+                    name="title"
+                    value={projectInfo.title}
+                    onChange={handleInputChange}
+                    placeholder="Enter project title"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="clientName">Client Name</Label>
+                  <Input
+                    id="clientName"
+                    name="clientName"
+                    value={projectInfo.clientName}
+                    onChange={handleInputChange}
+                    placeholder="Enter client name"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="overview">Project Overview</Label>
+                  <textarea
+                    id="overview"
+                    name="overview"
+                    value={projectInfo.overview}
+                    onChange={handleInputChange}
+                    className="w-full px-3 py-2 border rounded-md h-32 resize-none"
+                    placeholder="Provide a brief overview of the project"
+                  />
+                </div>
               </div>
             </div>
-          </div>
 
-          <div className="flex justify-end gap-3">
-            <Link href="/prd">
-              <Button variant="outline">Cancel</Button>
-            </Link>
-            <Link href="/prd/create/wizard">
-              <Button>Continue to Wizard</Button>
-            </Link>
+            <Separator />
+
+            <div className="space-y-4">
+              <CardHeader className="p-0 pb-2">
+                <CardTitle className="text-xl">Reference Documents</CardTitle>
+              </CardHeader>
+              <p className="text-slate-600">
+                Upload or link to any reference materials such as meeting notes, 
+                requirements docs, similar apps, etc.
+              </p>
+              
+              <div className="space-y-6">
+                <div>
+                  <Label className="mb-2 block">Document Upload</Label>
+                  <ReferenceFileUpload onFilesUploaded={handleFilesUploaded} />
+                </div>
+                
+                <div>
+                  <Label className="mb-2 block">External Links</Label>
+                  <ReferenceUrlInput onUrlsAdded={handleUrlsAdded} />
+                </div>
+              </div>
+            </div>
+
+            <Separator />
+
+            <div className="flex justify-end gap-3">
+              <Link href="/prd">
+                <Button variant="outline">Cancel</Button>
+              </Link>
+              <Button 
+                onClick={handleContinue} 
+                disabled={isLoading}
+              >
+                {isLoading ? 'Creating Project...' : 'Continue to Wizard'}
+              </Button>
+            </div>
           </div>
-        </div>
-      </div>
-    </div>
+        </CardContent>
+      </Card>
+    </>
   );
 }
